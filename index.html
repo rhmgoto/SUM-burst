@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>SUM BURST</title>
+  <style>
+    :root {
+      --bg-top: #bff3ff;
+      --bg-bottom: #e9fbff;
+      --ink: #1e3551;
+      --panel: rgba(255, 255, 255, 0.7);
+      --panel-strong: rgba(255, 255, 255, 0.9);
+      --danger: rgba(255, 88, 116, 0.52);
+      --play-w: min(100%, 820px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100dvh;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .app {
+      width: 100%;
+      height: 100dvh;
+      min-height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      align-items: stretch;
+      justify-items: center;
+      padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      gap: 8px;
+      background:
+        radial-gradient(circle at 20% 16%, rgba(255, 255, 255, 0.58) 0 7px, transparent 8px),
+        radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.48) 0 5px, transparent 6px),
+        radial-gradient(circle at 76% 88%, rgba(255, 255, 255, 0.45) 0 8px, transparent 9px),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    }
+
+    .topbar,
+    .bottombar {
+      width: var(--play-w);
+      max-width: 100%;
+      display: grid;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .topbar {
+      grid-template-columns: 44px 1fr 44px;
+      min-height: 46px;
+    }
+
+    .round-btn,
+    .action-btn {
+      min-width: 42px;
+      min-height: 42px;
+      border-radius: 999px;
+      background: var(--panel-strong);
+      box-shadow: 0 8px 18px rgba(45, 118, 166, 0.18), inset 0 -2px 0 rgba(54, 119, 151, 0.08);
+      display: inline-grid;
+      place-items: center;
+      font-weight: 900;
+    }
+
+    .round-btn:active,
+    .action-btn:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    .score-pill {
+      height: 44px;
+      border-radius: 999px;
+      background: var(--panel-strong);
+      box-shadow: 0 8px 18px rgba(45, 118, 166, 0.15), inset 0 -2px 0 rgba(54, 119, 151, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .title {
+      font-size: clamp(18px, 3.5vw, 28px);
+      font-weight: 1000;
+      letter-spacing: 0;
+      color: #11557c;
+      white-space: nowrap;
+    }
+
+    .score {
+      min-width: 86px;
+      font-size: clamp(20px, 4vw, 32px);
+      font-weight: 1000;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .play-wrap {
+      width: var(--play-w);
+      max-width: 100%;
+      min-height: 0;
+      position: relative;
+      border-radius: 22px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08)),
+        repeating-linear-gradient(0deg, transparent 0 74px, rgba(255, 255, 255, 0.18) 75px 76px),
+        linear-gradient(180deg, #cbf8ff 0%, #e9fdff 64%, #d7f6e8 100%);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55), 0 12px 26px rgba(31, 118, 155, 0.18);
+      touch-action: none;
+    }
+
+    .play-wrap.shake {
+      animation: shake 260ms ease-in-out 1;
+    }
+
+    #playArea {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .danger-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 10%;
+      height: 2px;
+      border-top: 2px dashed var(--danger);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .danger-label {
+      position: absolute;
+      top: calc(10% + 5px);
+      left: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: #d63155;
+      background: rgba(255, 255, 255, 0.62);
+      font-size: 12px;
+      font-weight: 900;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .danger-label.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .block {
+      --r: 32px;
+      --x: 0px;
+      --y: 0px;
+      --c1: #ff8d9a;
+      --c2: #ffce74;
+      width: calc(var(--r) * 2);
+      height: calc(var(--r) * 2);
+      position: absolute;
+      left: 0;
+      top: 0;
+      border-radius: 50%;
+      transform: translate(calc(var(--x) - var(--r)), calc(var(--y) - var(--r))) scale(1);
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 34% 25%, rgba(255, 255, 255, 0.92) 0 13%, transparent 14%),
+        linear-gradient(145deg, var(--c1), var(--c2));
+      box-shadow:
+        0 12px 22px rgba(32, 92, 132, 0.2),
+        inset 0 -7px 0 rgba(74, 55, 90, 0.12),
+        inset 0 3px 0 rgba(255, 255, 255, 0.56);
+      cursor: grab;
+      z-index: 5;
+      will-change: transform, width, height, opacity;
+      transition: box-shadow 120ms ease, filter 120ms ease;
+    }
+
+    .block::before,
+    .block::after {
+      content: "";
+      position: absolute;
+      top: 38%;
+      width: 10%;
+      height: 12%;
+      min-width: 4px;
+      min-height: 4px;
+      border-radius: 50%;
+      background: rgba(25, 46, 72, 0.78);
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.28);
+    }
+
+    .block::before {
+      left: 31%;
+    }
+
+    .block::after {
+      right: 31%;
+    }
+
+    .mouth {
+      position: absolute;
+      left: 50%;
+      top: 54%;
+      width: 20%;
+      height: 10%;
+      min-width: 9px;
+      border-bottom: max(2px, calc(var(--r) * 0.045)) solid rgba(25, 46, 72, 0.62);
+      border-radius: 0 0 999px 999px;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .value {
+      position: relative;
+      z-index: 3;
+      margin-top: -10%;
+      padding: 0 0.1em;
+      color: #132c49;
+      -webkit-text-stroke: max(2px, calc(var(--r) * 0.055)) rgba(255, 255, 255, 0.92);
+      paint-order: stroke fill;
+      text-shadow:
+        0 2px 0 rgba(255, 255, 255, 0.8),
+        0 4px 7px rgba(16, 53, 82, 0.22);
+      font-size: clamp(25px, calc(var(--r) * 0.84), 78px);
+      font-weight: 1000;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+    }
+
+    .block.dragging {
+      cursor: grabbing;
+      z-index: 50;
+      filter: saturate(1.12);
+      box-shadow:
+        0 22px 34px rgba(28, 80, 120, 0.31),
+        inset 0 -7px 0 rgba(74, 55, 90, 0.12),
+        inset 0 3px 0 rgba(255, 255, 255, 0.56);
+      transform: translate(calc(var(--x) - var(--r)), calc(var(--y) - var(--r))) scale(1.08);
+    }
+
+    .block.merge-ready {
+      filter: brightness(1.1) saturate(1.18);
+      box-shadow:
+        0 0 0 7px rgba(255, 255, 255, 0.52),
+        0 0 28px rgba(255, 214, 91, 0.72),
+        0 12px 22px rgba(32, 92, 132, 0.2),
+        inset 0 -7px 0 rgba(74, 55, 90, 0.12);
+    }
+
+    .block.pop {
+      animation: pop 260ms cubic-bezier(.2, 1.4, .38, 1) 1;
+    }
+
+    .block.clearing {
+      pointer-events: none;
+      animation: clearAway 420ms ease-out forwards;
+    }
+
+    .bottombar {
+      grid-template-columns: auto auto 1fr auto auto auto;
+      min-height: 48px;
+      padding: 4px 0 0;
+    }
+
+    .action-btn {
+      min-width: 48px;
+      padding: 0 14px;
+      border-radius: 16px;
+      font-size: 14px;
+    }
+
+    .mini-stat {
+      height: 42px;
+      min-width: 72px;
+      padding: 4px 10px;
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: inset 0 -1px 0 rgba(54, 119, 151, 0.08);
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      line-height: 1.05;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .mini-stat span {
+      color: #0f75a3;
+      font-size: 18px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .message {
+      position: absolute;
+      left: 50%;
+      top: 28%;
+      z-index: 80;
+      transform: translate(-50%, -50%);
+      padding: 10px 18px;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(18, 88, 124, 0.82);
+      box-shadow: 0 12px 28px rgba(35, 86, 116, 0.25);
+      font-weight: 1000;
+      font-size: clamp(20px, 6vw, 42px);
+      white-space: nowrap;
+      pointer-events: none;
+      animation: messageFloat 900ms ease-out forwards;
+    }
+
+    .burst {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      z-index: 75;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 18%, rgba(255, 230, 78, 0.85) 19% 42%, rgba(255, 118, 143, 0.34) 43% 62%, transparent 63%);
+      animation: burst 520ms ease-out forwards;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(28, 70, 103, 0.24);
+      backdrop-filter: blur(3px);
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .game-over-panel {
+      width: min(86%, 420px);
+      padding: 24px 18px 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 18px 42px rgba(28, 75, 113, 0.25);
+      text-align: center;
+    }
+
+    .game-over-panel h2 {
+      margin: 0 0 8px;
+      color: #e34567;
+      font-size: clamp(34px, 9vw, 60px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .game-over-panel p {
+      margin: 0 0 12px;
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .high-scores {
+      margin: 0 0 16px;
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: rgba(190, 240, 255, 0.44);
+      text-align: left;
+      font-weight: 900;
+    }
+
+    .high-scores h3 {
+      margin: 0 0 6px;
+      color: #0f75a3;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .high-scores ol {
+      margin: 0;
+      padding-left: 24px;
+      columns: 2;
+      column-gap: 22px;
+      font-size: 13px;
+      line-height: 1.45;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .game-over-panel .action-btn {
+      min-width: 160px;
+      color: #fff;
+      background: linear-gradient(145deg, #25a5d9, #6bd36d);
+    }
+
+    @keyframes pop {
+      0% { transform: translate(calc(var(--x) - var(--r)), calc(var(--y) - var(--r))) scale(0.9); }
+      55% { transform: translate(calc(var(--x) - var(--r)), calc(var(--y) - var(--r))) scale(1.18); }
+      100% { transform: translate(calc(var(--x) - var(--r)), calc(var(--y) - var(--r))) scale(1); }
+    }
+
+    @keyframes clearAway {
+      0% { transform: translate(calc(var(--x) - var(--r)), calc(var(--y) - var(--r))) scale(1); opacity: 1; filter: brightness(1.25); }
+      45% { transform: translate(calc(var(--x) - var(--r)), calc(var(--y) - var(--r))) scale(1.26); opacity: 1; }
+      100% { transform: translate(calc(var(--x) - var(--r)), calc(var(--y) - var(--r))) scale(0.24); opacity: 0; filter: brightness(1.8); }
+    }
+
+    @keyframes burst {
+      0% { width: 8px; height: 8px; opacity: 0.98; }
+      100% { width: 250px; height: 250px; opacity: 0; }
+    }
+
+    @keyframes messageFloat {
+      0% { opacity: 0; transform: translate(-50%, -40%) scale(0.86); }
+      16% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+      72% { opacity: 1; transform: translate(-50%, -62%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -84%) scale(0.92); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-5px); }
+      40% { transform: translateX(5px); }
+      60% { transform: translateX(-3px); }
+      80% { transform: translateX(3px); }
+    }
+
+    @media (max-width: 520px) {
+      .app {
+        gap: 6px;
+        padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+      }
+
+      .topbar {
+        grid-template-columns: 40px 1fr 40px;
+        min-height: 42px;
+      }
+
+      .round-btn,
+      .action-btn,
+      .score-pill {
+        min-height: 38px;
+      }
+
+      .score-pill {
+        height: 40px;
+        gap: 6px;
+      }
+
+      .title {
+        font-size: 17px;
+      }
+
+      .score {
+        min-width: 64px;
+        font-size: 22px;
+      }
+
+      .play-wrap {
+        border-radius: 16px;
+      }
+
+      .bottombar {
+        grid-template-columns: auto auto 1fr auto auto;
+        min-height: 44px;
+      }
+
+      .mini-stat {
+        min-width: 58px;
+        height: 38px;
+        font-size: 11px;
+        padding: 3px 8px;
+      }
+
+      .mini-stat span {
+        font-size: 16px;
+      }
+
+      #nextBox {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="SUM BURST game">
+    <header class="topbar">
+      <button id="backBtn" class="round-btn" aria-label="Back">‹</button>
+      <div class="score-pill" aria-live="polite">
+        <div class="title">SUM BURST</div>
+        <div id="score" class="score">0</div>
+      </div>
+      <button id="helpBtn" class="round-btn" aria-label="Help">?</button>
+    </header>
+
+    <section id="playWrap" class="play-wrap">
+      <div id="playArea" aria-label="Play area">
+        <div class="danger-line"></div>
+        <div id="dangerLabel" class="danger-label">DANGER</div>
+        <div id="overlay" class="overlay">
+          <div class="game-over-panel">
+            <h2>GAME OVER</h2>
+            <p id="finalScore">SCORE 0</p>
+            <div class="high-scores">
+              <h3>HIGH SCORES</h3>
+              <ol id="highScoreList"></ol>
+            </div>
+            <button id="overlayRestart" class="action-btn">RESTART</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bottombar">
+      <button id="restartBtn" class="action-btn">Restart</button>
+      <button id="pauseBtn" class="action-btn">Pause</button>
+      <div></div>
+      <div class="mini-stat">COMBO<span id="combo">0</span></div>
+      <div class="mini-stat">LEVEL<span id="level">1</span></div>
+      <div id="nextBox" class="mini-stat">NEXT<span id="nextValue">1</span></div>
+    </footer>
+  </main>
+
+  <script>
+    const playArea = document.getElementById("playArea");
+    const playWrap = document.getElementById("playWrap");
+    const scoreEl = document.getElementById("score");
+    const comboEl = document.getElementById("combo");
+    const levelEl = document.getElementById("level");
+    const nextValueEl = document.getElementById("nextValue");
+    const dangerLabel = document.getElementById("dangerLabel");
+    const overlay = document.getElementById("overlay");
+    const finalScore = document.getElementById("finalScore");
+    const highScoreList = document.getElementById("highScoreList");
+    const restartBtn = document.getElementById("restartBtn");
+    const overlayRestart = document.getElementById("overlayRestart");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const backBtn = document.getElementById("backBtn");
+    const helpBtn = document.getElementById("helpBtn");
+
+    let blocks = [];
+    let nextId = 1;
+    let score = 0;
+    let clearStreak = 0;
+    let level = 1;
+    let nextValue = 1;
+    let lastTime = 0;
+    let spawnTimer = 0;
+    let spawnedCount = 0;
+    let dangerTimer = 0;
+    let running = true;
+    let paused = false;
+    let dragging = null;
+    let mergeCandidate = null;
+    let lastTap = { id: null, time: 0 };
+    const dangerLineRatio = 0.10;
+
+    const palette = [
+      ["#ff4f7b", "#ff9a5c"],
+      ["#28a8ff", "#73ddff"],
+      ["#3fd46f", "#b8e85a"],
+      ["#9d6bff", "#e080ff"],
+      ["#ffbd2e", "#fff06a"],
+      ["#00bfa6", "#67efd7"],
+      ["#ff6a3d", "#ffb13d"],
+      ["#4e6cff", "#8fb2ff"],
+      ["#d64cdb", "#ff86c8"]
+    ];
+
+    function initGame() {
+      nextValue = randomValue();
+      restartGame();
+      requestAnimationFrame(updateGame);
+    }
+
+    function restartGame() {
+      blocks.forEach(block => block.element.remove());
+      blocks = [];
+      nextId = 1;
+      score = 0;
+      clearStreak = 0;
+      level = 1;
+      spawnTimer = 0;
+      spawnedCount = 0;
+      dangerTimer = 0;
+      lastTime = 0;
+      running = true;
+      paused = false;
+      dragging = null;
+      mergeCandidate = null;
+      overlay.classList.remove("show");
+      playWrap.classList.remove("shake");
+      pauseBtn.textContent = "Pause";
+      nextValue = randomValue();
+      renderHighScores(getHighScores());
+      updateUI();
+      setTimeout(() => {
+        spawnInitialBlocks();
+      }, 100);
+    }
+
+    function createBlock(value, x, y) {
+      const block = {
+        id: nextId++,
+        value,
+        x,
+        y,
+        radius: getRadiusForValue(value),
+        vx: 0,
+        vy: 0,
+        falling: true,
+        dangerArmed: false,
+        element: document.createElement("div")
+      };
+
+      block.element.className = "block";
+      block.element.dataset.id = String(block.id);
+      block.element.innerHTML = '<span class="value"></span><span class="mouth"></span>';
+      block.element.addEventListener("pointerdown", event => startDrag(event, block));
+      block.element.addEventListener("dblclick", event => {
+        event.preventDefault();
+        splitBlock(block);
+      });
+      playArea.appendChild(block.element);
+      blocks.push(block);
+      renderBlock(block);
+      return block;
+    }
+
+    function spawnBlock() {
+      if (!running || paused) return;
+      const rect = playArea.getBoundingClientRect();
+      const value = nextValue;
+      const radius = getRadiusForValue(value);
+      const x = clamp(radius + Math.random() * Math.max(1, rect.width - radius * 2), radius + 2, rect.width - radius - 2);
+      createBlock(value, x, -radius * 0.6);
+      spawnedCount += 1;
+      nextValue = randomValue();
+      updateUI();
+    }
+
+    function spawnInitialBlocks() {
+      const rect = playArea.getBoundingClientRect();
+      for (let i = 0; i < 20; i++) {
+        const value = randomValue();
+        const radius = getRadiusForValue(value);
+        const x = clamp(radius + Math.random() * Math.max(1, rect.width - radius * 2), radius + 2, rect.width - radius - 2);
+        const y = -radius - Math.random() * rect.height * 0.55 - i * 7;
+        const block = createBlock(value, x, y);
+        block.vx = (Math.random() - 0.5) * 42;
+        block.vy = Math.random() * 36;
+      }
+      spawnedCount += 20;
+      nextValue = randomValue();
+      spawnTimer = 0;
+      updateUI();
+    }
+
+    function updateGame(time) {
+      const delta = Math.min(32, lastTime ? time - lastTime : 16);
+      lastTime = time;
+
+      if (running && !paused) {
+        spawnTimer += delta;
+        if (spawnTimer >= getSpawnInterval()) {
+          spawnTimer = 0;
+          spawnBlock();
+        }
+        updateFallingBlocks(delta);
+        resolveCollisions();
+        checkGameOver(delta);
+        updateUI();
+      }
+
+      requestAnimationFrame(updateGame);
+    }
+
+    function updateFallingBlocks(delta) {
+      const rect = playArea.getBoundingClientRect();
+      const dt = delta / 1000;
+      const gravity = getFallSpeed();
+      const floor = rect.height - 2;
+      const wallBounce = 0.32;
+      const floorBounce = 0.18;
+      const floorFriction = 0.91;
+
+      blocks.forEach(block => {
+        if (dragging?.block === block || block.element.classList.contains("clearing")) return;
+
+        block.vy += gravity * dt;
+        block.x += block.vx * dt;
+        block.y += block.vy * dt;
+
+        if (block.x - block.radius < 2) {
+          block.x = block.radius + 2;
+          block.vx = Math.abs(block.vx) * wallBounce;
+        } else if (block.x + block.radius > rect.width - 2) {
+          block.x = rect.width - block.radius - 2;
+          block.vx = -Math.abs(block.vx) * wallBounce;
+        }
+
+        if (block.y + block.radius > floor) {
+          block.y = floor - block.radius;
+          block.vy = Math.abs(block.vy) < 72 ? 0 : -block.vy * floorBounce;
+          block.vx *= floorFriction;
+        }
+
+        if (Math.abs(block.vx) < 3) block.vx = 0;
+        if (Math.abs(block.vy) < 3 && block.y + block.radius >= floor - 1) block.vy = 0;
+        block.falling = Math.abs(block.vx) > 2 || Math.abs(block.vy) > 2 || block.y + block.radius < floor - 1;
+      });
+    }
+
+    function resolveCollisions() {
+      const rect = playArea.getBoundingClientRect();
+      for (let pass = 0; pass < 5; pass++) {
+        for (let i = 0; i < blocks.length; i++) {
+          for (let j = i + 1; j < blocks.length; j++) {
+            const a = blocks[i];
+            const b = blocks[j];
+            if (dragging?.block === a || dragging?.block === b) continue;
+            if (a.element.classList.contains("clearing") || b.element.classList.contains("clearing")) continue;
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dist = Math.hypot(dx, dy) || 0.01;
+            const minDist = a.radius + b.radius + 3;
+            if (dist >= minDist) continue;
+
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const overlap = minDist - dist;
+            const aMass = a.radius * a.radius;
+            const bMass = b.radius * b.radius;
+            const totalMass = aMass + bMass;
+            const aShare = bMass / totalMass;
+            const bShare = aMass / totalMass;
+
+            a.x -= nx * overlap * aShare;
+            a.y -= ny * overlap * aShare;
+            b.x += nx * overlap * bShare;
+            b.y += ny * overlap * bShare;
+
+            const rvx = b.vx - a.vx;
+            const rvy = b.vy - a.vy;
+            const velAlongNormal = rvx * nx + rvy * ny;
+            if (velAlongNormal < 0) {
+              const restitution = 0.08;
+              const impulse = -(1 + restitution) * velAlongNormal / (1 / aMass + 1 / bMass);
+              const ix = impulse * nx;
+              const iy = impulse * ny;
+              a.vx -= ix / aMass;
+              a.vy -= iy / aMass;
+              b.vx += ix / bMass;
+              b.vy += iy / bMass;
+            }
+
+            const tangentX = -ny;
+            const tangentY = nx;
+            const slide = (rvx * tangentX + rvy * tangentY) * 0.018;
+            a.vx += tangentX * slide;
+            b.vx -= tangentX * slide;
+
+            keepInside(a, rect);
+            keepInside(b, rect);
+          }
+        }
+      }
+
+      blocks.forEach(block => {
+        const onFloor = block.y + block.radius >= rect.height - 4;
+        block.falling = Math.abs(block.vx) > 2 || Math.abs(block.vy) > 2 || !onFloor;
+        renderBlock(block);
+      });
+    }
+
+    function startDrag(event, block) {
+      if (!running || paused) return;
+      event.preventDefault();
+      const now = performance.now();
+      if (lastTap.id === block.id && now - lastTap.time < 320) {
+        lastTap = { id: null, time: 0 };
+        splitBlock(block);
+        return;
+      }
+      lastTap = { id: block.id, time: now };
+      const rect = playArea.getBoundingClientRect();
+      dragging = {
+        block,
+        pointerId: event.pointerId,
+        offsetX: event.clientX - rect.left - block.x,
+        offsetY: event.clientY - rect.top - block.y
+      };
+      block.falling = false;
+      block.element.setPointerCapture(event.pointerId);
+      block.element.classList.add("dragging");
+      window.addEventListener("pointermove", updateDrag, { passive: false });
+      window.addEventListener("pointerup", endDrag, { passive: false });
+      window.addEventListener("pointercancel", endDrag, { passive: false });
+    }
+
+    function updateDrag(event) {
+      if (!dragging || event.pointerId !== dragging.pointerId) return;
+      event.preventDefault();
+      const block = dragging.block;
+      const rect = playArea.getBoundingClientRect();
+      block.x = event.clientX - rect.left - dragging.offsetX;
+      block.y = event.clientY - rect.top - dragging.offsetY;
+      keepInside(block, rect);
+      renderBlock(block);
+
+      const target = findMergeTarget(block);
+      if (mergeCandidate && mergeCandidate !== target) {
+        mergeCandidate.element.classList.remove("merge-ready");
+      }
+      mergeCandidate = target;
+      if (mergeCandidate) mergeCandidate.element.classList.add("merge-ready");
+    }
+
+    function endDrag(event) {
+      if (!dragging || event.pointerId !== dragging.pointerId) return;
+      event.preventDefault();
+      const source = dragging.block;
+      source.element.classList.remove("dragging");
+      if (mergeCandidate) mergeCandidate.element.classList.remove("merge-ready");
+
+      const target = findMergeTarget(source);
+      dragging = null;
+      mergeCandidate = null;
+      window.removeEventListener("pointermove", updateDrag);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+
+      if (target) {
+        mergeBlocks(source, target);
+      } else {
+        source.falling = true;
+      }
+    }
+
+    function findMergeTarget(draggedBlock) {
+      let best = null;
+      let bestOverlap = 0;
+      for (const target of blocks) {
+        if (target === draggedBlock) continue;
+        if (target.element.classList.contains("clearing")) continue;
+        const dist = Math.hypot(draggedBlock.x - target.x, draggedBlock.y - target.y);
+        const overlap = draggedBlock.radius + target.radius - dist;
+        const requiredOverlap = Math.max(6, Math.min(draggedBlock.radius, target.radius) * 0.08);
+        if (overlap > requiredOverlap && overlap > bestOverlap) {
+          best = target;
+          bestOverlap = overlap;
+        }
+      }
+      return best;
+    }
+
+    function mergeBlocks(sourceBlock, targetBlock) {
+      if (!blocks.includes(sourceBlock) || !blocks.includes(targetBlock)) return;
+      const sum = sourceBlock.value + targetBlock.value;
+      sourceBlock.element.remove();
+      blocks = blocks.filter(block => block !== sourceBlock);
+
+      targetBlock.value = sum;
+      targetBlock.falling = true;
+      targetBlock.vx *= 0.35;
+      targetBlock.vy = Math.max(targetBlock.vy, 40);
+      if (!isMultipleOfTen(sum)) {
+        targetBlock.radius = getRadiusForValue(sum);
+        const dangerY = playArea.getBoundingClientRect().height * dangerLineRatio;
+        targetBlock.dangerArmed = targetBlock.y > dangerY;
+      }
+      renderBlock(targetBlock);
+      targetBlock.element.classList.remove("pop");
+      void targetBlock.element.offsetWidth;
+      targetBlock.element.classList.add("pop");
+
+      createBurstEffect(targetBlock.x, targetBlock.y, sum);
+
+      if (isMultipleOfTen(sum)) {
+        if (sum >= 30) showMessage("BURST!");
+        if (sum >= 50) {
+          playWrap.classList.remove("shake");
+          void playWrap.offsetWidth;
+          playWrap.classList.add("shake");
+        }
+        updateScore(sum);
+        clearBlock(targetBlock);
+      } else {
+        clearStreak = 0;
+        updateUI();
+        showMessage(String(sum));
+      }
+    }
+
+    function splitBlock(block) {
+      if (!running || paused || !blocks.includes(block) || block.value < 2) return;
+      if (block.element.classList.contains("clearing")) return;
+
+      const rect = playArea.getBoundingClientRect();
+      const low = Math.floor(block.value / 2);
+      const high = block.value - low;
+      const leftValue = high;
+      const rightValue = low;
+      const leftRadius = getRadiusForValue(leftValue);
+      const rightRadius = getRadiusForValue(rightValue);
+      const gap = 8;
+      const spread = Math.min(block.radius * 0.45, leftRadius + rightRadius + gap);
+      const baseX = block.x;
+      const baseY = block.y;
+      const baseVx = block.vx;
+      const baseVy = block.vy;
+      const armed = block.dangerArmed;
+
+      if (dragging?.block === block) {
+        block.element.classList.remove("dragging");
+        dragging = null;
+        window.removeEventListener("pointermove", updateDrag);
+        window.removeEventListener("pointerup", endDrag);
+        window.removeEventListener("pointercancel", endDrag);
+      }
+      if (mergeCandidate) {
+        mergeCandidate.element.classList.remove("merge-ready");
+        mergeCandidate = null;
+      }
+
+      block.element.remove();
+      blocks = blocks.filter(item => item !== block);
+
+      const leftBlock = createBlock(leftValue, baseX - spread * 0.5, baseY);
+      const rightBlock = createBlock(rightValue, baseX + spread * 0.5, baseY);
+      leftBlock.vx = baseVx - 46;
+      rightBlock.vx = baseVx + 46;
+      leftBlock.vy = baseVy;
+      rightBlock.vy = baseVy;
+      leftBlock.dangerArmed = armed;
+      rightBlock.dangerArmed = armed;
+      keepInside(leftBlock, rect);
+      keepInside(rightBlock, rect);
+      renderBlock(leftBlock);
+      renderBlock(rightBlock);
+      showMessage(leftValue + " + " + rightValue);
+      createBurstEffect(baseX, baseY, block.value);
+    }
+
+    function getRadiusForValue(value) {
+      const w = Math.max(320, Math.min(window.innerWidth, 820));
+      const scale = clamp(w / 768, 0.82, 1.14);
+      const tier = Math.floor(Math.max(0, value - 1) / 10);
+      const stepInTier = (value - 1) % 10;
+      const firstTierMin = 30;
+      const firstTierMax = 66;
+      let tierStart = firstTierMin;
+      let tierEnd = firstTierMax;
+
+      for (let i = 1; i <= tier; i++) {
+        tierStart = tierEnd * 1.3;
+        tierEnd = tierStart * (5 / 3);
+      }
+
+      const tierProgress = stepInTier / 9;
+      const rawRadius = (tierStart + (tierEnd - tierStart) * tierProgress) * scale;
+      return Math.round(rawRadius);
+    }
+
+    function isMultipleOfTen(value) {
+      return value > 0 && value % 10 === 0;
+    }
+
+    function clearBlock(block) {
+      if (!blocks.includes(block)) return;
+      block.element.classList.add("clearing");
+      setTimeout(() => {
+        block.element.remove();
+        blocks = blocks.filter(item => item !== block);
+      }, 420);
+    }
+
+    function updateScore(clearedNumber) {
+      const comboCount = clearStreak + 1;
+      const basePoints = getBaseClearPoints(clearedNumber);
+      const comboBonus = getComboBonus(comboCount);
+      const comboMultiplier = getComboMultiplier(comboCount);
+      const bigComboMultiplier = getBigComboMultiplier(clearedNumber, comboCount);
+      const gainedPoints = Math.round(basePoints * comboMultiplier * bigComboMultiplier + comboBonus);
+      clearStreak = comboCount;
+      score += gainedPoints;
+      if (bigComboMultiplier > 1) {
+        showMessage("BIG COMBO +" + gainedPoints);
+      } else if (comboMultiplier > 1) {
+        showMessage("COMBO +" + gainedPoints);
+      }
+      updateLevel();
+      updateUI();
+    }
+
+    function getBaseClearPoints(clearedNumber) {
+      if (clearedNumber >= 50) return 500;
+      if (clearedNumber >= 40) return 300;
+      if (clearedNumber >= 30) return 150;
+      if (clearedNumber >= 20) return 50;
+      return 10;
+    }
+
+    function getComboMultiplier(comboCount) {
+      if (comboCount >= 5) return 4;
+      if (comboCount === 4) return 3;
+      if (comboCount === 3) return 2.2;
+      if (comboCount === 2) return 1.5;
+      return 1;
+    }
+
+    function getComboBonus(comboCount) {
+      return Math.min(comboCount, 10) * 10;
+    }
+
+    function getBigComboMultiplier(clearedNumber, comboCount) {
+      if (clearedNumber < 30 || comboCount < 2) return 1;
+      const sizeBonus = Math.max(0, Math.floor(clearedNumber / 10) - 3) * 0.25;
+      return 1 + (comboCount - 1) * 0.5 + sizeBonus;
+    }
+
+    function updateLevel() {
+      const previous = level;
+      if (score >= 5000) level = 5;
+      else if (score >= 2500) level = 4;
+      else if (score >= 1000) level = 3;
+      else if (score >= 300) level = 2;
+      else level = 1;
+      if (level > previous) showMessage("LEVEL " + level);
+    }
+
+    function checkGameOver(delta) {
+      const rect = playArea.getBoundingClientRect();
+      const dangerY = rect.height * dangerLineRatio;
+      let inDanger = false;
+      let tooLarge = false;
+      blocks.forEach(block => {
+        if (block.element.classList.contains("clearing")) return;
+        if (isTooLargeForPlayArea(block, rect)) {
+          tooLarge = true;
+        }
+        if (!block.dangerArmed && block.y > dangerY) {
+          block.dangerArmed = true;
+        }
+        if (block.dangerArmed && isBlockSettled(block) && block.y - block.radius < dangerY) {
+          inDanger = true;
+        }
+      });
+      dangerLabel.classList.toggle("show", inDanger);
+      dangerTimer = inDanger ? dangerTimer + delta : 0;
+      if (inDanger || tooLarge) triggerGameOver();
+    }
+
+    function isTooLargeForPlayArea(block, rect) {
+      return block.radius * 2 > rect.width - 4 || block.radius * 2 > rect.height - 4;
+    }
+
+    function isBlockSettled(block) {
+      return Math.abs(block.vx) < 18 && Math.abs(block.vy) < 18;
+    }
+
+    function triggerGameOver() {
+      if (!running) return;
+      running = false;
+      const highScores = saveHighScore(score);
+      finalScore.textContent = "SCORE " + score;
+      renderHighScores(highScores);
+      overlay.classList.add("show");
+      showMessage("GAME OVER");
+    }
+
+    function getHighScores() {
+      try {
+        const scores = JSON.parse(localStorage.getItem("sumBurstHighScores") || "[]");
+        return Array.isArray(scores) ? scores.filter(Number.isFinite).slice(0, 10) : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveHighScore(value) {
+      const scores = getHighScores();
+      scores.push(value);
+      scores.sort((a, b) => b - a);
+      const topScores = scores.slice(0, 10);
+      try {
+        localStorage.setItem("sumBurstHighScores", JSON.stringify(topScores));
+      } catch (error) {
+        // High score saving can fail in private or restricted browser modes.
+      }
+      return topScores;
+    }
+
+    function renderHighScores(scores) {
+      highScoreList.innerHTML = "";
+      const list = scores.length ? scores : [0];
+      list.slice(0, 10).forEach(value => {
+        const item = document.createElement("li");
+        item.textContent = String(value);
+        highScoreList.appendChild(item);
+      });
+    }
+
+    function updateUI() {
+      scoreEl.textContent = String(score);
+      comboEl.textContent = String(clearStreak);
+      levelEl.textContent = String(level);
+      nextValueEl.textContent = String(nextValue);
+    }
+
+    function showMessage(text) {
+      const message = document.createElement("div");
+      message.className = "message";
+      message.textContent = text;
+      playArea.appendChild(message);
+      setTimeout(() => message.remove(), 950);
+    }
+
+    function createBurstEffect(x, y, value) {
+      const burst = document.createElement("div");
+      burst.className = "burst";
+      burst.style.left = x + "px";
+      burst.style.top = y + "px";
+      if (isMultipleOfTen(value)) {
+        burst.style.background = "radial-gradient(circle, rgba(255,255,255,.98) 0 18%, rgba(255,232,69,.95) 19% 42%, rgba(255,93,130,.45) 43% 64%, transparent 65%)";
+      }
+      playArea.appendChild(burst);
+      setTimeout(() => burst.remove(), 540);
+    }
+
+    function renderBlock(block) {
+      const colors = getColorsForValue(block.value);
+      block.element.style.setProperty("--r", block.radius + "px");
+      block.element.style.setProperty("--x", block.x + "px");
+      block.element.style.setProperty("--y", block.y + "px");
+      block.element.style.setProperty("--c1", colors[0]);
+      block.element.style.setProperty("--c2", colors[1]);
+      block.element.querySelector(".value").textContent = block.value;
+    }
+
+    function getColorsForValue(value) {
+      const ones = value % 10;
+      const colorIndex = ones === 0 ? 8 : ones - 1;
+      return palette[colorIndex];
+    }
+
+    function keepInside(block, rect) {
+      block.x = clamp(block.x, block.radius + 2, rect.width - block.radius - 2);
+      block.y = clamp(block.y, -block.radius * 0.35, rect.height - block.radius - 2);
+    }
+
+    function getSpawnInterval() {
+      const baseInterval = [0, 3600, 3100, 2600, 2200, 1850][level] || 1850;
+      const frequencyBoost = 1 + Math.floor(spawnedCount / 10) * 0.1;
+      return Math.max(450, baseInterval / frequencyBoost);
+    }
+
+    function getFallSpeed() {
+      return [0, 342, 414, 495, 585, 702][level] || 702;
+    }
+
+    function randomValue() {
+      if (Math.random() < 0.042) {
+        return randomRareValue();
+      }
+      return Math.floor(Math.random() * 9) + 1;
+    }
+
+    function randomRareValue() {
+      const totalWeight = 45;
+      let roll = Math.random() * totalWeight;
+      for (let value = 11; value <= 19; value++) {
+        roll -= 20 - value;
+        if (roll <= 0) return value;
+      }
+      return 11;
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function relayoutBlocks() {
+      const rect = playArea.getBoundingClientRect();
+      blocks.forEach(block => {
+        block.radius = getRadiusForValue(block.value);
+        keepInside(block, rect);
+        renderBlock(block);
+      });
+      resolveCollisions();
+    }
+
+    restartBtn.addEventListener("click", restartGame);
+    overlayRestart.addEventListener("click", restartGame);
+    pauseBtn.addEventListener("click", () => {
+      if (!running) return;
+      paused = !paused;
+      pauseBtn.textContent = paused ? "Resume" : "Pause";
+      showMessage(paused ? "PAUSE" : "GO!");
+    });
+    backBtn.addEventListener("click", () => showMessage("SUM BURST"));
+    helpBtn.addEventListener("click", () => showMessage("DRAG + DROP"));
+    window.addEventListener("resize", relayoutBlocks);
+    window.addEventListener("contextmenu", event => event.preventDefault());
+
+    initGame();
+  </script>
+</body>
+</html>
